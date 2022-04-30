@@ -17,6 +17,8 @@
     "concurrently": "^5.1.0"
   },
   "dependencies": {
-    "dotenv": "^16.0.0"
+    "dotenv": "^16.0.0",
+    "google-auth-library": "^8.0.2",
+    "react-google-login": "^5.2.2"
   }
 }

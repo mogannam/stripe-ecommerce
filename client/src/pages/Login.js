@@ -3,13 +3,47 @@ import { useMutation } from '@apollo/client';
 import { Link } from 'react-router-dom';
 import { LOGIN } from '../utils/mutations';
 import Auth from '../utils/auth';
+import { GoogleLogin, GoogleLogout } from 'react-google-login';
+require('dotenv').config();
 
 function Login(props) {
-  const [formState, setFormState] = useState({ email: '', password: '' });
-  const [login, { error }] = useMutation(LOGIN);
+  //login is a graphql function call that gets variables passed to it in the handleformSubmit
+  // the data/response is in the handleformsubmit and gets sets globally there
+  //const [login, { error }] = useMutation(LOGIN);
 
-  const handleFormSubmit = async (event) => {
-    event.preventDefault();
+  const refreshTokenSetup = (GoogleAuthResponse) => {
+    let refreshTiming = (GoogleAuthResponse.tokenObj.expires_in || 3600 -5 *60) * 1000;
+    const refreshToken = async () => {
+      const newAuthRes = await GoogleAuthResponse.reloadAuthResponse();
+      refreshTiming = (newAuthRes.expires_in || 3600 -5 *60) *1000;
+      //setup other timer after first timer is initated
+      setTimeout(refreshToken,refreshTiming)
+      console.log('force login refresh')
+    }
+    //setup first refresh timer
+    setTimeout(refreshToken,refreshTiming)
+  }
+
+  const onSuccess = (googleAuthResponse) => {
+    console.log(`[Login Success] user : `, googleAuthResponse.profileObj )
+    console.log(`[Login Success] user : `, googleAuthResponse )
+    refreshTokenSetup(googleAuthResponse)
+
+  }
+  const onLogOutSuccess = (googleAuthResponse) => {
+    console.log(`[LogOut Success]  : `, googleAuthResponse )
+  }
+
+  const onFailure = (googleAuthResponse) => {
+    console.log(`[Login Success] user : `, googleAuthResponse )
+  }
+
+
+  
+
+  
+
+  /*const handleLogin = async googleData => {
     try {
       const mutationResponse = await login({
         variables: { email: formState.email, password: formState.password },
@@ -19,51 +53,25 @@ function Login(props) {
     } catch (e) {
       console.log(e);
     }
-  };
-
-  const handleChange = (event) => {
-    const { name, value } = event.target;
-    setFormState({
-      ...formState,
-      [name]: value,
-    });
-  };
+    // store returned user somehow
+  }*/
 
   return (
     <div className="container my-1">
-      <Link to="/signup">← Go to Signup</Link>
+      <GoogleLogin
+    clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID}
+    buttonText="Log in with Google"
+    onSuccess={onSuccess}
+    onFailure={onFailure}
+    cookiePolicy={'single_host_origin'}
+/>
+<GoogleLogout
+  clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID}
+  buttonText="Log Out"
+  onLogoutSuccess={onLogOutSuccess}
+/>
+    
 
-      <h2>Login</h2>
-      <form onSubmit={handleFormSubmit}>
-        <div className="flex-row space-between my-2">
-          <label htmlFor="email">Email address:</label>
-          <input
-            placeholder="youremail@test.com"
-            name="email"
-            type="email"
-            id="email"
-            onChange={handleChange}
-          />
-        </div>
-        <div className="flex-row space-between my-2">
-          <label htmlFor="pwd">Password:</label>
-          <input
-            placeholder="******"
-            name="password"
-            type="password"
-            id="pwd"
-            onChange={handleChange}
-          />
-        </div>
-        {error ? (
-          <div>
-            <p className="error-text">The provided credentials are incorrect</p>
-          </div>
-        ) : null}
-        <div className="flex-row flex-end">
-          <button type="submit">Submit</button>
-        </div>
-      </form>
     </div>
   );
 }
