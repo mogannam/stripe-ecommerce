@@ -3,6 +3,8 @@ const { User, Product, Category, Order } = require('../models');
 const { signToken } = require('../utils/auth');
 require('dotenv').config();
 const stripe = require('stripe')(process.env.STRIPE_KEY);
+const {OAuth2Client} = require('google-auth-library')
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
 
 
 const resolvers = {
@@ -138,7 +140,54 @@ const resolvers = {
       const token = signToken(user);
 
       return { token, user };
+    },
+
+    googleLogin: async (parent, { email, tokenId, gToken }) => {
+      //step 1 validate the token
+      console.log("in resolver.js:googleLogin line 147")
+      const responseValidation = await client.verifyIdToken(
+        {idToken: tokenId, 
+          audience: process.env.GOOGLE_CLIENT_ID})
+
+      const data = responseValidation.getPayload();
+      console.log(`Response of G validation : ${JSON.stringify(data)}`)
+      console.log(`data.email: ${data.email}`)
+      console.log(`data.aud : ${data.aud}`) 
+      console.log(`proccess.env.REACT_APP_GOOGLE_CLIENT_ID ${process.env.REACT_APP_GOOGLE_CLIENT_ID}`)
+      console.log(`data.email_verified: ${data.email_verified}`)
+       // double check google user, if user is not valid throw error
+       if(data.aud != process.env.REACT_APP_GOOGLE_CLIENT_ID)
+       console.log('mismatch in app id') 
+       if(email!= data.email)
+        console.log('missmatch in emails') 
+      if(data.email_verified != true)
+          console.log("miss match in bools")
+
+      if(data.aud != process.env.REACT_APP_GOOGLE_CLIENT_ID || email!= data.email || data.email_verified != true )
+        throw new AuthenticationError('Incorrect Google credentials');
+      // if the token is not from my app throw an error
+      // if the emails don't match 
+      // if google says the emails don't match in thier boolean
+
+      //step 2 Does the user exist in my DB
+      const user = await User.findOne({ email });
+      if (!user) { // if user does not exist add them
+        console.log(`creating new user ${data.email}`)
+        let firstName = data.given_name
+        let lastName = data.family_name
+        if(!firstName) firstName = data.email
+        if(!lastName) lastName = data.email
+        const newUser = await User.create({firstName: firstName, lastName: lastName, email: data.email});
+        const newToken = signToken(newUser);
+        return { newToken, newUser };
+      }
+
+      // else the user exists, and we return the token
+      const token = signToken(user);
+      return { token, user };
     }
+
+
   }
 };
 

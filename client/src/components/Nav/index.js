@@ -1,8 +1,22 @@
 import React from "react";
 import Auth from "../../utils/auth";
 import { Link } from "react-router-dom";
+import {useGoogleLogout} from 'react-google-login'
+require('dotenv').config();
+const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 
 function Nav() {
+
+  const customOnLogOutSuccess = (googleAuthResponse) => {
+    console.log(`[LogOut Success]  : `, googleAuthResponse )
+    
+  }
+
+  const onFailure = (googleAuthResponse) => {
+    console.log(`[Login Failure]  : `, googleAuthResponse )
+  }
+
+  const {signOut} = useGoogleLogout({ clientId, customOnLogOutSuccess, onFailure,})
 
   function showNavigation() {
     if (Auth.loggedIn()) {
@@ -15,7 +29,7 @@ function Nav() {
           </li>
           <li className="mx-1">
             {/* this is not using the Link component to logout or user and then refresh the application to the start */}
-            <a href="/" onClick={() => Auth.logout()}>
+            <a href="/" onClick={() => { signOut(); Auth.logout();   }}>
               Logout
             </a>
           </li>

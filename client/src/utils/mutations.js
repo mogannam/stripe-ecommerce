@@ -11,6 +11,17 @@ export const LOGIN = gql`
   }
 `;
 
+export const GOOGLE_LOGIN = gql`
+mutation googleLogin($email: String!, $tokenId: String!, $gToken: String!) {
+  googleLogin(email: $email, tokenId: $tokenId, gToken: $gToken) {
+    token
+    user {
+      _id
+    }
+  }
+}
+`;
+
 export const ADD_ORDER = gql`
   mutation addOrder($products: [ID]!) {
     addOrder(products: $products) {
